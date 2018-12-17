@@ -1,7 +1,15 @@
 # Secure Coding Practices
 This is an Alaska Airlines course on 12.17.18, and goes through good, secure coding practices, specifically designed for web developers.
 
-## Takeaway: Test/scan every single day - test before it's too late
+## Takeaways: 
+- Test/scan every single day - test before it's too late
+- Make your entire website or webserver HTTPS
+- HSTS
+  - Force the browser to alawys use HTTPS and preload
+- Look into certificate transparency
+  - Support as soon as possible
+- Enable certificate authority authorization
+- Keep updated
 
 ## A1: Injections
 The most common form of exploit is SQL injections. The best way to protect against that is to use parameterized queries, because even valid data can be exploited. An example of a bad sql request:
@@ -220,3 +228,48 @@ Credential stuffing is dangerous to both consumers and enterprises because of th
 
 ### Solution: Retire old vulnerable packages
 Seriously, retire those old ass punks.
+
+## Cross Site Request Forgery
+Cross-Site Request Forgery (CSRF) is an attack that forces an end user to execute unwanted actions on a web application in which they're currently authenticated. CSRF attacks specifically target state-changing requests, not theft of data, since the attacker has no way to see the response to the forged request. With a little help of social engineering (such as sending a link via email or chat), an attacker may trick the users of a web application into executing actions of the attacker's choosing. If the victim is a normal user, a successful CSRF attack can force the user to perform state changing requests like transferring funds, changing their email address, and so forth. If the victim is an administrative account, CSRF can compromise the entire web application.
+
+### CSRF Defense
+1. Synchronizer Token Pattern
+    - "Hidden" token in HTML
+    - At login time, generate random CSRF protection. This token value should be stored in the users session
+    - Add the CSRF token from session to each sensitive form or url that you deliver to users
+    ```html
+    <form action="/transfer.do" method="post">
+
+    <input type="hidden" name="CSRFToken" 
+    value="OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZMGYwMGEwOA==">
+    ```
+2. Double Cookie Submit Defense
+    - Stateless CSRF and REST - the client-server communication is constrained by no client context being stored on the server between requests. Each request contains all the information.
+    - If maintaining the state for CSRF token at server side is problematic, an alternative defense is to use the double submit cookie technique. This technique is easy to implement and is stateless. In this technique, we send a random value in both a cookie and as a request parameter, with the server verifying if the cookie value and request value match. When a user visits (even before authenticating to prevent login CSRF), the site should generate a (cryptographically strong) pseudorandom value and set it as a cookie on the user's machine separate from the session identifier. The site then requires that every transaction request include this pseudorandom value as a hidden form value (or other request parameter/header). If both of them match at server side, the server accepts it as legitimate request and if they don’t, it would reject the request.
+3. Challenge-response: CSRF Defense Option
+    - Re-autenticate on sensitive actions
+4. CSRF Header Verification Defense
+    - Check ORIGIN request header against actual domain
+      - Match: good request
+      - Wrong: - bad request
+      - Missing: check referrer instead
+    - Check root of REFERRER request header against actual domain
+      - Match: good request
+      - Wrong: bad request
+      - Missinf: inform user and fail gracefully (rare)
+
+## SSL (Secure Socket Layer)
+We should not be using SSL at all since they're all easily bypassable.
+
+## TLS (Transport Layer Security)
+- Confidentiality: Spay cannot view your data
+- Integrity: Spy cannot change your data
+- Authenticity: Server you are visiting is the right one, backed up by the certificate authority system
+- HTTPS / TLS should be used everywhere and always
+
+## HSTS (HTTP Strict Transport Security)
+- Released in November 2012
+- Mitigates
+  - Downgrade to HTTP attacks
+  - MitM attack using DNS trickery
+  - Browser default behavior of trying HTTP first
