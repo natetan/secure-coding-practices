@@ -94,7 +94,36 @@ img.src = badURL;
 </script>
 ```
 
-### XSS Defense by data type and context: there's a table somewhere
+#### XSS Cookie Theft Defense
+Use an HTTPOnly cookie - JavaScript can't read this.
+
+### Stored XSS: Same Site Request Forgery
+Because you're already logged in, the cookies are already there and attached there. Attackers don't need to steal the cookies - they just need to **use** it. This **completely** bypasses the safe use of cookies method. It's as if the client ran this code themselves. 
+
+### XSS Defense
+**XSS Defense Principles**
+- Assume all variables added to a UI are dangerous
+- Ensure **all variables and content** dynamically added to a ui are protected from XSS in some way **at the UI layer itself**
+- Do not depend on server-side protections (validation) to protect you from XSS
+- Be wary of developers disabling framework features that provide automatic XSS defense, like React's `dangerouslySetInnerHTML()` or Angular's `bypasSecurityTrustAs()`
+
+**Clean everything!**  
+- Turn `<` into `&lt;`
+- There are different contexts to encode for. This includes HTML tag elements, HTML attributes, URL encoding, etc
+- It's very important to make sure that URLs are properly checked for their schemas because we do not want to read a JavaScript link - that runs js code which is basically the end of times for web apps.
+
+**XSS Defense Table**
+| Data type | Context   | Code Sample                   | Defense |
+| --------- | --------  | ----------------------------- | ------- |
+| String    | HTML body | `<span>UNTRUSTED DATA</span>` | [HTML Entity Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.231_-_HTML_Escape_Before_Inserting_Untrusted_Data_into_HTML_Element_Content) |
+| String | Safe HTML Attributes | `<input type="text" name="fname" value="UNTRUSTED DATA">` | [Aggressive HTML Entity Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.232_-_Attribute_Escape_Before_Inserting_Untrusted_Data_into_HTML_Common_Attributes), Only place untrusted data into a whitelist of safe attributes, Strictly validate unsafe attributes such as background, id and name. |
+| String | GET Parameter | `<a href="/site/search?value=UNTRUSTED DATA">clickme</a>` | [URL Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.235_-_URL_Escape_Before_Inserting_Untrusted_Data_into_HTML_URL_Parameter_Values) |
+| String | Untrusted URL in a SRC or HREF attribute | `<a href="UNTRUSTED URL">clickme</a> <iframe src="UNTRUSTED URL" />` | Canonicalize input, URL Validation, Safe URL verification, Whitelist http and https URL's only, [Avoid the JavaScript Protocol to Open a new Window](https://www.owasp.org/index.php/Avoid_the_JavaScript_Protocol_to_Open_a_new_Window), Attribute encoder |
+| String | CSS Value | `<div style="width: UNTRUSTED DATA;">Selection</div>` | [Strict structural validation](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.234_-_CSS_Escape_And_Strictly_Validate_Before_Inserting_Untrusted_Data_into_HTML_Style_Property_Values), CSS Hex encoding, Good design of CSS Features | 
+| String | JavaScript Variable | `<script>var currentValue='UNTRUSTED DATA';</script><script>someFunction('UNTRUSTED DATA');</script>` | Ensure JavaScript variables are quoted, JavaScript Hex Encoding, JavaScript Unicode Encoding, Avoid backslash encoding (\" or \' or \\) | 
+| HTML | HTML Body | `<div>UNTRUSTED HTML</div>` | [HTML Validation (JSoup, AntiSamy, HTML Sanitizer)](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.236_-_Use_an_HTML_Policy_engine_to_validate_or_clean_user-driven_HTML_in_an_outbound_way) |
+| String | DOM XSS | `<script>document.write("UNTRUSTED INPUT: " + document.location.hash);<script/>` | [DOM based XSS Prevention Cheat Sheet](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet) |
+
 
 ## A8: Insecure Deserialization
 Serialization is the process of turning some object into a data format that can be restored later. People often serialize objects in order to save them to storage, or to send as part of communications. Deserialization is the reverse of that process -- taking data structured from some format, and rebuilding it into an object. Today, the most popular data format for serializing data is JSON. Before that, it was XML.
@@ -110,6 +139,84 @@ However, many programming languages offer a native capability for serializing ob
 
 ## A9: Using Known Vulnerable Components
 Some 3rd party libraries are not secure and are easy to exploit. The biggest example was a remote execution attack to Equifax in 2017. This was the biggest breach in history. 
+
+## Dangerous JavaScript
+There are some js functions that are insanely dangerous to run and to let users put in their own value to those.
+
+**Dangerous**
+```js
+document.write();
+element.innerHTML();
+```
+
+**Safe**
+```js
+elem.textContent = dangerousVariable;
+elem.className = dangerousVariable;
+form.value = dangerousVariable
+```
+
+In the same regard, many jQuery functions are also very dangerous because some functions write directly to the DOM, which means bad js can run.
+
+### Using Safe Functions Safely
+`someoldpage.aspx - UNSAFE`. It's safe in the browser, but not on the server because it's an asp page.
+```html
+<script>
+var elem = document.getElementById('elementId');
+elem.textContent = '?????????';
+</script>
+```
+
+`someoldpage.js - SAFE`
+```js
+function(elem, data) {
+  elem.textContent = data;
+}
+```
+
+## Passwords
+
+### Do Not Limit the Password Strength
+- Limiting passwords to protect against injection is **doomed to failure**
+- Use **query parameterization** and other defenses
+
+### Use a Modern Password Policy Scheme
+- Consider...
+
+### Special Publication 800-63-3: Digital AuthN Guidelines
+**Favor the user**: To begin, make your password policies *user friendly* and put the *burden on the verifier* when possible
+- Do not limit the characters or length of passwords
+- At least 8 characters and allow up to 64 (16+ better)
+  - Use MFA if the min is 8 characters
+- Block passwords that contain dictionary words
+- Block passwords that contain repetition like 'aaaaaa'
+- Block context-specific passwords like the username or service name
+- Check against a list of common and breached username/passwords
+- Throttle or otherwise manage brute force attacks (for example, use bcrypt to make it take 2 seconds)
+- Don't force unnatural password special character rules
+- Don't use password security questions or hints
+- No more mandatory password expiration for the sake of it
+- Allow all printable ASCII characters including spaces, and should accept all UNICODE characters, including emoji
+
+### Password Storage
+Use a slow hashing algorithm, like bcrypt, which is an adaptive, slow algorithm. Basically what we did in server-side.
+
+### Credential Stuffing Safeguards
+Credential stuffing is the automated injection of breached username/password pairs in order to fraudulently gain access to user accounts. This is a subset of the brute force attack category: large numbers of spilled credentials are automatically entered into websites until they are potentially matched to an existing account, which the attacker can then hijack for their own purposes.
+
+Credential stuffing is a new form of attack to accomplish account takeover through automated web injection. Credential stuffing is related to the breaching of databases; both accomplish account takeover. Credential stuffing is an emerging threat.
+
+Credential stuffing is dangerous to both consumers and enterprises because of the ripple effects of these breaches. For more information on this please reference the Examples section showing the connected chain of events from one breach to another through credential stuffing.
+
+**Stuffing Live Defense**
+- **Block use of known username/password pairs from past breaches**
+- Implement multi factor authentication
+- Consider avoiding email addresses for usernames
+
+**3rd Party Password Breach Response**
+- **Scan for use of known username/password pairs from new breach against entire existing userbase**
+- Immediately invalidate user of existing username/password pairs
+- Force password reset on affected users
 
 ### Solution: Retire old vulnerable packages
 Seriously, retire those old ass punks.
