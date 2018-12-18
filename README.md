@@ -122,7 +122,7 @@ Because you're already logged in, the cookies are already there and attached the
 
 **XSS Defense Table**
 | Data type | Context   | Code Sample                   | Defense
-| --------- | --------  | ----------------------------- | ------- |
+| --------- | --------  | ----------------------------- | -------
 | String    | HTML body | `<span>UNTRUSTED DATA</span>` | [HTML Entity Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.231_-_HTML_Escape_Before_Inserting_Untrusted_Data_into_HTML_Element_Content) |
 | String | Safe HTML Attributes | `<input type="text" name="fname" value="UNTRUSTED DATA">` | [Aggressive HTML Entity Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.232_-_Attribute_Escape_Before_Inserting_Untrusted_Data_into_HTML_Common_Attributes), Only place untrusted data into a whitelist of safe attributes, Strictly validate unsafe attributes such as background, id and name.
 | String | GET Parameter | `<a href="/site/search?value=UNTRUSTED DATA">clickme</a>` | [URL Encoding](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.235_-_URL_Escape_Before_Inserting_Untrusted_Data_into_HTML_URL_Parameter_Values)
